@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGNBOT</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* General page styling */
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: black; /* Dark background for the matrix effect */
+            overflow: hidden; /* Hide scrollbars for full-screen effect */
+        }
+
+        /* Matrix effect canvas */
+        #matrix {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Main container */
+        .main-container {
+            background: linear-gradient(135deg, rgba(209, 222, 208, 0.9), rgba(5, 62, 33, 0.9));
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Left section styling */
+        .left-section {
+            flex: 1;
+            max-width: 50%;
+        }
+
+        /* Right section styling */
+        .right-section {
+            flex: 1;
+            max-width: 50%;
+            border-left: 2px solid #ddd;
+            padding-left: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Static title styling */
+        h1 {
+            font-size: 32px;
+            color: #2c3e50;
+            font-weight: 700;
+            margin: 0 0 20px;
+        }
+
+        /* Text input styling */
+        #text-input {
+            width: 97%;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #2c3e50;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        #text-input:focus {
+            border-color: #f6d365;
+        }
+
+        /* Output container styling */
+        #output {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 5px;
+        }
+
+        /* Styling for word separation */
+        .word-separator {
+            width: 20px;
+            display: inline-block;
+        }
+
+        /* Individual sign video/image styling */
+        .sign-video {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .sign-video:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Styling for the not found message */
+        .not-found {
+            background-color: #ffefd5;
+            color: #d9534f;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 16px;
+            margin: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Styling for the buttons */
+        #start-recognition, #clear-text, #sign-to-text, #translator {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background: linear-gradient(45deg, #5be26b, #4e4c49);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        #start-recognition:hover, #clear-text:hover, #sign-to-text:hover, #translator:hover {
+            background: linear-gradient(45deg, #5be26b, #4e4c49);
+        }
+
+        /* Tooltip styling */
+        button {
+            position: relative;
+        }
+
+        button:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        /* Spinner for loading */
+        #loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        #loading img {
+            width: 50px;
+            height: 50px;
+        }
+
+        /* Chatbot styles */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-message {
+            margin-bottom: 10px;
+        }
+
+        .chat-message.user {
+            text-align: right;
+            color: #2c3e50;
+        }
+
+        .chat-message.bot {
+            text-align: left;
+            color: #4caf50;
+        }
+
+        #chat-input {
+            padding: 10px;
+            font-size: 16px;
+            width: 95%;
+            border: 2px solid #2c3e50;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        #send-chat {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="matrix"></canvas>
+    <div class="main-container">
+        <div class="left-section">
+            <h1>SIGNBOT</h1>
+            <input type="text" id="text-input" placeholder="Enter text here">
+            <button id="start-recognition" data-tooltip="Click to speak and convert to sign language"><i class="fas fa-microphone"></i> Start Speech Recognition</button>
+            <button id="clear-text" data-tooltip="Click to clear the input"><i class="fas fa-trash"></i> Clear</button>
+            <button id="sign-to-text" data-tooltip="Click to convert sign to text"><i class="fas fa-hand-paper"></i> Sign to Text</button>
+            <button id="translator" data-tooltip="Click to open the translator">Translator</button> <!-- New Translator Button -->
+            <div id="output"></div>
+            <div id="loading">
+                <img src="https://i.imgur.com/llF5iyg.gif" alt="loading spinner">
+            </div>
+        </div>
+        <div class="right-section">
+            <!-- Chatbot content -->
+            <h2>Chatbot</h2>
+            <div class="chat-container">
+                <div id="chat-box" class="chat-box"></div>
+                <input type="text" id="chat-input" placeholder="Type a message">
+                <button id="send-chat">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix Falling Effect
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+
+        // Make the canvas full screen
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrixChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()-+=<>[]{}|;:,.';
+        const fontSize = 16;
+        const columns = canvas.width / fontSize; // Number of columns for the rain
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            // Black background with slight transparency
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Green text
+            ctx.fillStyle = '#00ff00';
+            ctx.font = `${fontSize}px Courier New`;
+
+            // Loop over the drops and draw the characters
+            drops.forEach((drop, i) => {
+                const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+                ctx.fillText(text, i * fontSize, drop * fontSize);
+
+                // Randomly reset the drop to start again
+                if (drop * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            });
+        }
+        let lastFrameTime = 0;
+        function animateMatrix(timestamp) {
+            if (timestamp - lastFrameTime >= 33) {
+                drawMatrix();
+                lastFrameTime = timestamp;
+            }
+            requestAnimationFrame(animateMatrix);
+        }
+
+        requestAnimationFrame(animateMatrix);
+
+        // Speech-to-Text Functionality
+        const textInput = document.getElementById('text-input');
+        const output = document.getElementById('output');
+        const loading = document.getElementById('loading');
+        const startRecognitionButton = document.getElementById('start-recognition');
+        const clearTextButton = document.getElementById('clear-text');
+
+        // Add event listener to convert text when typing
+        document.getElementById('text-input').addEventListener('input', convertTextToSignLanguage);
+
+        // Speech recognition setup
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+
+        recognition.onresult = function (event) {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('text-input').value = transcript;
+            convertTextToSignLanguage();
+        };
+
+        document.getElementById('start-recognition').addEventListener('click', function () {
+            recognition.start();
+            document.getElementById('loading').style.display = 'block';
+        });
+
+        recognition.onend = function () {
+            document.getElementById('loading').style.display = 'none';
+        };
+
+        // Clear text and output
+        document.getElementById('clear-text').addEventListener('click', function () {
+            document.getElementById('text-input').value = '';
+            document.getElementById('output').innerHTML = '';
+        });
+
+        const signLanguageImages = {
+            "a": "https://emilypost.com/client_media/images/a.jpg",
+            "b": "https://www.signingsavvy.com/images/words/alphabet/2/b1.jpg",
+            "c": "https://as2.ftcdn.net/v2/jpg/02/19/74/79/1000_F_219747972_h4eDDsFKDPkThPS6VOMzfUugeXHUpHhN.jpg",
+            "d": "https://thumbs.dreamstime.com/b/finger-spelling-letter-d-american-sign-language-white-background-woman-showing-letter-d-isolated-white-asl-concept-finger-162124640.jpg",
+            "e": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7EjCvDWPK13-7ImjNX__hyrlOiHrq_Mr0fA&s",
+            "f": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTDiYjN51UARsCmLFPwGJlDvJx5dbET9Rj4lA&s",
+            "g": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxHVHov17mUsYY8J6cEQy8xW_eiczOdeJMdw&s",
+            "h": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBz16u83bSGfDzJGkJgoRzpUe2EpF2ouNybQ&s",
+            "i": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0RDb-yjk4-C9SP27FhvizVYhV748vddiDmA&s",
+            "j": "https://previews.123rf.com/images/arybickii/arybickii1510/arybickii151000420/46653297-finger-spelling-the-alphabet-in-american-sign-language-asl-the-letter-j.jpg",
+            "k": "https://as1.ftcdn.net/v2/jpg/02/19/73/28/1000_F_219732832_JCFEUdJCjWu4EIKQ5qVIkYYACRqMjmts.jpg",
+            "l": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvwVNnaiDulhp_fw_oGOEtP-7OboOy6josHw&s",
+            "m": "https://as1.ftcdn.net/v2/jpg/02/19/73/28/1000_F_219732837_zjUw7xc41EIFlv2jxwlAaDvilkyIscth.jpg",
+            "n": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQPSmQ8rnYGjqdx5auWljfTYYiY2J4x4aSMNw&s",
+            "o": "https://as1.ftcdn.net/v2/jpg/02/19/73/28/1000_F_219732845_WgcyoGjZSMb8uxdQay99pinZEbEjrCtD.jpg",
+            "p": "https://as1.ftcdn.net/v2/jpg/02/19/73/28/1000_F_219732849_uFjnrPqpWQmKR1rmvDg1zvufBPRLSL8D.jpg",
+            "q": "https://media.istockphoto.com/id/1311916807/photo/man-showing-letter-q-isolated-on-white-background-closeup-finger-spelling-alphabet-in.jpg?s=612x612&w=0&k=20&c=ck0sDGmB1XnDbciQHs1RCt8-Dym0T5672gtMYx5Ct1w=",
+            "r": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQWLb5hO784J2k2MBjH3v6T4KBhwEo3Pbs9Iw&s",
+            "s": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQX_QqxJ0G0NrF6pljeQ1G7YfAa5cd3JsHXGg&s",
+            "t": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfB9Adtdbd4cVUKnuOLE1AqKnFXfd8pa48vQ&s",
+            "u": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt1RcjgoZ8AMPJFA62LDO2PtMwCQ2bM_uBqg&s",
+            "v": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRkXVsSYY8ZSxUEtIkOt0vF3RCXsaMOrcFrTw&s",
+            "w": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAaeEfw9w2W_jizNAST203q4zyBXXnMokg5w&s",
+            "x": "https://as1.ftcdn.net/v2/jpg/02/19/73/28/1000_F_219732880_2Voiug12rPejqqqTMZduGiEShIMHyhTr.jpg",
+            "y": "https://www.signingsavvy.com/images/words/alphabet/2/y1.jpg",
+            "z": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRiqvCvPrBeO1rXOrvshFAmiMS0Mj5bdG9B6g&s"
+
+        };
+
+         // Function to convert input text to sign language images
+         function convertTextToSignLanguage() {
+            const inputText = document.getElementById('text-input').value.toLowerCase();
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = '';
+
+            const words = inputText.split(' ');
+
+            words.forEach((word, wordIndex) => {
+                Array.from(word).forEach(letter => {
+                    const letterElement = document.createElement('img');
+                    letterElement.classList.add('sign-video');
+
+                    if (signLanguageImages[letter]) {
+                        letterElement.src = signLanguageImages[letter];
+                    } else {
+                        const notFoundElement = document.createElement('div');
+                        notFoundElement.classList.add('not-found');
+                        notFoundElement.textContent = '?'; // Replace with a fallback character or image
+                        outputDiv.appendChild(notFoundElement);
+                        return;
+                    }
+
+                    outputDiv.appendChild(letterElement);
+                });
+
+                if (wordIndex < words.length - 1) {
+                    const wordSeparator = document.createElement('div');
+                    wordSeparator.classList.add('word-separator');
+                    outputDiv.appendChild(wordSeparator);
+                }
+            });
+        }
+
+        setInterval(drawMatrix, 33);
+
+        // Chatbot Logic
+        const chatBox = document.getElementById('chat-box');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat');
+
+        const botResponses = {
+            "hello": "Hi there! How can I help you?",
+            "what is your name": "I am a chatbot created to assist you.",
+            "how are you": "I'm just a program, but I'm here to help!",
+            //... more responses...
+        };
+
+        sendChatBtn.addEventListener('click', () => {
+            const userMessage = chatInput.value.trim();
+            if (userMessage) {
+                // Display user message
+                chatBox.innerHTML += `<div class="chat-message user">${userMessage}</div>`;
+                // Get bot response
+                const botMessage = botResponses[userMessage.toLowerCase()] || "I'm sorry, I don't understand that.";
+                chatBox.innerHTML += `<div class="chat-message bot">${botMessage}</div>`;
+                // Clear input
+                chatInput.value = '';
+                // Scroll to bottom of chat
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        });
+
+        // Event Listener for 'Sign to Text' button
+        document.getElementById('sign-to-text').addEventListener('click', function () {
+            window.open("http://localhost:8889/lab/tree/welllog.ipynb/project_directory/Untitled3.ipynb", "_blank");
+        });
+
+        // Translator button action
+        document.getElementById('translator').addEventListener('click', function () {
+            window.open('translator.html', '_blank'); // Opens translator in new tab
+        });
+    </script>
+</body>
+
+</html>
